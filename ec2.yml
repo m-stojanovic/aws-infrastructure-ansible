@@ -1,0 +1,13 @@
+- hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - keys.yml
+  tasks:
+    - name: Change instances state by tag
+      ec2: 
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        ec2_region: "{{ AWS_REGION }}"
+        state: running
+        instance_tags:
+          Name: ansible

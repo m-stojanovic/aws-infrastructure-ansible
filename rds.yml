@@ -1,0 +1,39 @@
+- hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - keys.yml
+  tasks:
+    # Create RDS instance for octopus server #
+    - name: Create RDS octopus instance
+      rds:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        command: create
+        db_engine: postgres
+        engine_version: "9.6.11"
+        db_name: "{{ name }}{{ dev_environment }}db"
+        instance_name: "{{ name }}-{{ dev_environment }}-db"
+        instance_type: "{{ db_type }}"
+        multi_zone: no
+        username: "octopusinfluencer"
+        password: "CarnegieInfluencer!12"
+        backup_window: "04:00-04:30"
+        maint_window: "sun:04:30-sun:05:30"
+        #auto_minor_version_upgrade: true
+        #apply_immediately: "true"
+        backup_retention: "7"
+        publicly_accessible: yes
+        port: 5432
+        size: "20"
+        #storage_type: gp2
+        vpc_security_groups: "{{ item.security_group_id | default(omit) }}"
+        #db_subnet_group: "{{ name }}-subnet-db-public"
+        #parameter_group_name: "default.postgres9.6"
+        subnet: "{{ name }}-subnet-db-public" #"{{ public_subnet_2.subnet.id }}"
+        wait: yes
+        wait_timeout: 500
+        tags:
+          Name: "{{ name }}-{{ dev_environment }}-db-all"
+          user:Client: "{{ name }}"
+          user:Environment: "{{ dev_environment }}"

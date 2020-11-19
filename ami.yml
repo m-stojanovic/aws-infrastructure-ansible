@@ -1,0 +1,19 @@
+- name: Launch an Ubuntu 12.04 (Precise Pangolin) EC2 instance
+  hosts: localhost
+  vars_files:
+    - keys.yml
+  tasks:
+    - name: Get the image precise AMI
+      ec2_ami_info:
+        region: "{{ AWS_REGION }}"
+        filters:
+          name: "amzn2-ami-hvm-*-x86_64-gp2"
+      register: ami_find
+
+    - name: Sort the latest AMI
+      set_fact:
+        latest_ami: "{{ ami_find.images | sort(attribute='creation_date') | last }}"
+
+    - name: debug a var
+      debug:
+        var: latest_ami
