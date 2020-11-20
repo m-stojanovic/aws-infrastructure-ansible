@@ -1,0 +1,87 @@
+- hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - keys.yml
+  tasks:
+    # Create required S3 buckets #
+    - name: Create S3 buckets
+      s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        versioning: no
+        tags:
+          Name: "{{ item }}"
+          user:Client: "{{ name }}"
+          user:Environment: "{{ dev_environment }}"
+        purge_tags: yes
+      loop:
+        - "{{ name }}-{{ dev_environment }}-octopus-server"
+        - "{{ name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ name }}-{{ dev_environment }}-chat-server-user-attachments"
+        - "{{ name }}-{{ dev_environment }}-ecommerce-s3"
+        - "{{ name }}-{{ dev_environment }}-private-ecommerce-s3"
+      register: s3_debug
+
+    - name: debug S3 var
+      debug:
+        var: s3_debug
+
+    # Create required S3 chat-server-canned-attachments bucket #
+    - name: Create S3 chat-server-canned-attachments bucket
+      s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        versioning: no
+        policy: "{{ lookup('file','policy.json') }}"
+        tags:
+          Name: "{{ item }}"
+          user:Client: "{{ name }}"
+          user:Environment: "{{ dev_environment }}"
+        purge_tags: yes
+      loop:
+        - "{{ name }}-{{ dev_environment }}-chat-server-canned-attachments"
+      register: s3_chat
+
+    - name: debug S3 var
+      debug:
+        var: s3_chat
+
+    # Create CORS rules for created S3 buckets #
+    - name: Apply CORS rules to S3 buckets
+      aws_s3_cors:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        rules:
+          - allowed_origins: #["*"]
+              - "*"
+            allowed_methods: #["GET", "POST", "PUT", "DELETE"]
+              - GET
+              - POST
+              - PUT
+              - DELETE
+            allowed_headers: #["*"]
+              - "*"
+            expose_headers: #["ETag"]
+              - ETag
+            max_age_seconds: 3000
+      loop:
+        - "{{ name }}-{{ dev_environment }}-octopus-server"
+        - "{{ name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ name }}-{{ dev_environment }}-chat-server-user-attachments"
+        - "{{ name }}-{{ dev_environment }}-chat-server-canned-attachments"
+        - "{{ name }}-{{ dev_environment }}-ecommerce-s3"
+        - "{{ name }}-{{ dev_environment }}-private-ecommerce-s3"
+      register: s3_cors
+
+    - name: debug S3 var
+      debug:
+        var: s3_cors
