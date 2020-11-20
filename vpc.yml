@@ -208,6 +208,11 @@
           Name: "{{ name }}-db-sg"
           user:client: "{{ name }}"
           user:Environment: "{{ dev_environment }}"
+      register: db_sg
+
+    - name: debug a var
+      debug:
+        var: db_sg
 
     # Get AWS ami image id #
     - name: Get the AMI image id
@@ -264,6 +269,11 @@
           Name: "{{ name }}-{{ dev_environment }}-all"
           user:Client: "{{ name }}"
           user:Environment: "{{ dev_environment }}"
+      register: ec2_var
+
+    - name: debug a var
+      debug:
+        var: ec2_var
 
     # Create EC2 transcoder instance #
     - name: Change transcoder instance stage by tag
@@ -311,6 +321,11 @@
         subnets:
           - "{{ public_subnet_1.subnet.id }}"
           - "{{ public_subnet_2.subnet.id }}"
+      register: rds_subnet_group
+
+    - name: debug a var
+      debug:
+        var: rds_subnet_group
 
     # Create RDS instance for octopus server #
     - name: Create RDS octopus instance
@@ -329,20 +344,103 @@
         password: "CarnegieInfluencer!12"
         backup_window: "04:00-04:30"
         maint_window: "sun:04:30-sun:05:30"
-        #auto_minor_version_upgrade: true
-        #apply_immediately: "true"
         backup_retention: "7"
         publicly_accessible: yes
         port: 5432
         size: "20"
-        #storage_type: gp2
-        vpc_security_groups: "{{ item.security_group_id | default(omit) }}"
-        #db_subnet_group: "{{ name }}-subnet-db-public"
-        #parameter_group_name: "default.postgres9.6"
-        subnet: "{{ name }}-subnet-db-public" #"{{ public_subnet_2.subnet.id }}"
+        vpc_security_groups: "{{ db_sg.group_id }}"
+        subnet: "{{ name }}-subnet-db-public"
         wait: yes
         wait_timeout: 500
         tags:
           Name: "{{ name }}-{{ dev_environment }}-db-all"
           user:Client: "{{ name }}"
           user:Environment: "{{ dev_environment }}"
+      register: rds_instance
+
+    - name: debug a var
+      debug:
+        var: rds_instance
+
+    # Create required S3 buckets #
+    - name: Create S3 buckets
+      s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        versioning: no
+        tags:
+          Name: "{{ item }}"
+          user:Client: "{{ name }}"
+          user:Environment: "{{ dev_environment }}"
+        purge_tags: yes
+      loop:
+        - "{{ name }}-{{ dev_environment }}-octopus-server"
+        - "{{ name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ name }}-{{ dev_environment }}-chat-server-user-attachments"
+        - "{{ name }}-{{ dev_environment }}-ecommerce-s3"
+        - "{{ name }}-{{ dev_environment }}-private-ecommerce-s3"
+      register: s3_debug
+
+    - name: debug S3 var
+      debug:
+        var: s3_debug
+
+    # Create required S3 chat-server-canned-attachments bucket #
+    - name: Create S3 chat-server-canned-attachments bucket
+      s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        versioning: no
+        policy: "{{ lookup('file','policy.json') }}"
+        tags:
+          Name: "{{ item }}"
+          user:Client: "{{ name }}"
+          user:Environment: "{{ dev_environment }}"
+        purge_tags: yes
+      loop:
+        - "{{ name }}-{{ dev_environment }}-chat-server-canned-attachments"
+      register: s3_chat
+
+    - name: debug S3 var
+      debug:
+        var: s3_chat
+
+    # Create CORS rules for created S3 buckets #
+    - name: Apply CORS rules to S3 buckets
+      aws_s3_cors:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        rules:
+          - allowed_origins:
+              - "*"
+            allowed_methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+            allowed_headers:
+              - "*"
+            expose_headers:
+              - ETag
+            max_age_seconds: 3000
+      loop:
+        - "{{ name }}-{{ dev_environment }}-octopus-server"
+        - "{{ name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ name }}-{{ dev_environment }}-chat-server-user-attachments"
+        - "{{ name }}-{{ dev_environment }}-chat-server-canned-attachments"
+        - "{{ name }}-{{ dev_environment }}-ecommerce-s3"
+        - "{{ name }}-{{ dev_environment }}-private-ecommerce-s3"
+      register: s3_cors
+
+    - name: debug S3 var
+      debug:
+        var: s3_cors
