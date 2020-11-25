@@ -1,0 +1,19 @@
+version: '3'
+services:
+  redis:
+    image: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    container_name: "{{ deployment_environment }}-redis-server"
+    hostname: "{{ deployment_environment }}-redis"
+    ports:
+      - '6379:6379'
+    environment:
+      REDIS_REPLICATION_MODE: master
+    volumes:
+      - /carnegie/docker-compose/redis/data-redis:/data
+    networks:
+      - "redis-net-{{ deployment_environment }}"
+    restart: unless-stopped
+
+networks:
+  redis-net-{{ deployment_environment }}:

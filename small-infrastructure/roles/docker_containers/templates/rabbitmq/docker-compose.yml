@@ -1,0 +1,15 @@
+version: "3"
+services:
+  rabbit:
+    image: rabbitmq:3-management
+    container_name: "{{ deployment_environment }}-rabbitmq-server"
+    hostname: "{{ deployment_environment }}-rabbitmq"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: octopuschat
+      RABBITMQ_DEFAULT_PASS: octopus123ChAtbREStrikalaMiBaka
+    volumes:
+      - /carnegie/docker-compose/rabbitmq/data-rabbitmq:/var/lib/rabbitmq
+    restart: unless-stopped

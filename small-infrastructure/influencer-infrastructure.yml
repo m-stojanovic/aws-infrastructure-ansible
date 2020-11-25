@@ -1,12 +1,55 @@
 - hosts: localhost
   gather_facts: yes
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: ec2-user
   vars_files:
     - keys.yml
+  # vars:
+  #   aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+  #   aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+  #vars:
+  #   aws_access_key: "{{ lookup('env','var_aws_access_key') }}"
+  #   aws_secret_key: "{{ lookup('env','var_aws_secret_key') }}"
+  #   region: "{{ lookup('env','var_region') }}"
+  #   env: "{{ lookup('env','var_environment') }}"
+  #   dev_environment: "{{ lookup('env','var_dev_environment') }}"
+  #   name: "{{ lookup('env','var_name') }}"
+  #   db_username: "{{ lookup('env','var_db_username') }}" #octopusinfluencer
+  #   db_password: "{{ lookup('env','var_db_password') }}" #"CarnegieInfluencer!12"
+  #   chat: "{{ lookup('env','var_chat') }}"
+  #   ads: "{{ lookup('env','var_ads') }}"
+  #   signaling: "{{ lookup('env','var_signaling') }}"
+  #   analytics: "{{ lookup('env','var_analytics') }}"
+  #   reports: "{{ lookup('env','var_reports') }}"
+  #   ecommerce: "{{ lookup('env','var_ecommerce') }}"
+  #   comments: "{{ lookup('env','var_comments') }}"
+  #   transcoder: "{{ lookup('env','var_transcoder') }}"
+  #   webpay: "{{ lookup('env','var_webpay') }}"
+  #   ums: "{{ lookup('env','var_ums') }}"
+  # roles:
+  #   - common
+  #   - octopus-server
+  #   - octopus-octopush
+  #   - webapp
+  #   - { role: octopus-chat, when: chat == '1' }
+  #   - { role: octopus-comments, when: comments == '1' }
+  #   - { role: octopus-analytics, when: analytics == '1' }
+  #   - { role: octopus-ecommerce, when: ecommerce == '1' }
+  #   - { role: webpay, when: webpay == '1' }
+  #   - { role: ums-server, when: ums == '1' }
+  #   - { role: signaling-server, when: signaling == '1' }
+  #   - docker_containers
+  #   - nginx
   tasks:
     # VPC #
     - name: Create VPC
       ec2_vpc_net:
         name: "{{ name }}-{{ dev_environment }}-vpc"
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         cidr_block: "200.1.0.0/16"
         dns_hostnames: yes
         dns_support: yes
@@ -23,6 +66,8 @@
     # AMI Image Facts #
     - name: Obtain all AZ present in region {{ AWS_REGION }}
       aws_az_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
       register: az_in_region
 
@@ -33,6 +78,9 @@
     # Subnet 1 #
     - name: Create Subnet 1
       ec2_vpc_subnet:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         cidr: "200.1.1.0/24"
         az: "{{ az_in_region.availability_zones[0].zone_name }}"
@@ -50,6 +98,9 @@
     # Subnet 2 #
     - name: Create Subnet 2
       ec2_vpc_subnet:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         cidr: "200.1.2.0/24"
         az: "{{ az_in_region.availability_zones[1].zone_name }}"
@@ -67,6 +118,9 @@
     # Internet Gateway #
     - name: Create Internet Gateway
       ec2_vpc_igw:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         state: present
         tags:
@@ -78,6 +132,9 @@
     # Routing Table #
     - name: Create Routing Table
       ec2_vpc_route_table:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         routes:
           - dest: "0.0.0.0/0"
@@ -94,6 +151,9 @@
     # Security Group for EC2 #
     - name: Create required SSH SG
       ec2_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         name: "{{ name }}-ssh-sg"
         vpc_id: "{{ vpc_name.vpc.id }}"
         description: "SSH ports for EC2 single server"
@@ -137,6 +197,9 @@
     # Define EC2 Postgresql Security Group #
     - name: Create required EC2 Web SG
       ec2_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         name: "{{ name }}-web-sg"
         vpc_id: "{{ vpc_name.vpc.id }}"
         description: "Web ports for EC2 single server"
@@ -162,6 +225,9 @@
     # Define RDS Postgresql Security Group #
     - name: Create required RDS Postgres SG
       ec2_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         name: "{{ name }}-db-sg"
         vpc_id: "{{ vpc_name.vpc.id }}"
         description: "DB ports for EC2 single server"
@@ -199,6 +265,9 @@
     # Get AWS ami image id #
     - name: Get the AMI image id
       ec2_ami_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         filters:
           name: "amzn2-ami-hvm-*-x86_64-gp2"
       register: ami_find
@@ -214,12 +283,18 @@
     # Create AWS keypair #
     - name: Create aws private keypair
       ec2_key:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         name: carnegie1
         key_material: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC5IkRNJQtrROT8pjKJeoA8lF7wQ6wfIcj4xxE/nRc19xTebwOMlYfpfTRfSk65FjFkf0xLuDTpa8r/dA+tmkMkj3oCFR+UKCyTFyhxWbRvVzaRckk+ph8BcENNMHd8uAAukBnHlJiPwI1+BCaSNR1LhUGTRBiiTJMK8dxfBHnfGfSm3s7j8yVQbYcGk8GC8cYk5m6ZfF3UBeD0/P6mdx0eIKCGkfk2yWFHOK+BAJgwC0GNPChxHY07ywBk7+X7fIj3+ldyXIH+vtBkx6nWXJ1nw9zz1mFCa9QziybsglcOS//zKxmQ4lAVOcul4xpiY6fODHtXKS2RB1dm0ADKuDUb CarnegieKey"
 
     # Create EC2 octopus instance #
     - name: Change octopus instance state by tag
-      ec2:
+      amazon.aws.ec2:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         key_name: carnegie1
         instance_type: "{{ i_type }}"
         image: "{{ latest_ami.image_id }}"
@@ -249,9 +324,20 @@
           user:Environment: "{{ dev_environment }}"
       register: ec2_var
 
+    # - name: Install octopus services on EC2 octopus instance
+    #   command: "ansible-playbook -u ec2-user -i 46.137.53.186, --private-key ~/.ssh/carnegie1.pem octopus_setup.yml"
+    #   register: octopus_setup
+
+    # - name: Debug octopus_setup
+    #   debug:
+    #     var: octopus_setup
+
     # Create EC2 transcoder instance #
     - name: Change transcoder instance stage by tag
       ec2:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         key_name: carnegie1
         instance_type: "{{ i_type }}"
         image: "{{ latest_ami.image_id }}"
@@ -283,6 +369,9 @@
     # Create RDS Postgresql subnet group #
     - name: Create RDS subnet group
       rds_subnet_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         state: present
         name: "{{ name }}-subnet-db-public"
         description: "RDS Subnet"
@@ -298,6 +387,9 @@
     # Create RDS instance for octopus server #
     - name: Create RDS octopus instance
       rds:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         command: create
         db_engine: postgres
         engine_version: "9.6.11"
@@ -305,8 +397,8 @@
         instance_name: "{{ name }}-{{ dev_environment }}-db"
         instance_type: "{{ db_type }}"
         multi_zone: no
-        username: "octopusinfluencer"
-        password: "CarnegieInfluencer!12"
+        username: "{{ db_username }}"
+        password: "{{ db_password }}"
         backup_window: "04:00-04:30"
         maint_window: "sun:04:30-sun:05:30"
         backup_retention: "7"
@@ -326,6 +418,9 @@
     # Create required S3 buckets #
     - name: Create S3 buckets
       s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         name: "{{ item }}"
         state: presentr
         versioning: no
@@ -349,6 +444,9 @@
     # Create required S3 chat-server-canned-attachments bucket #
     - name: Create S3 chat-server-canned-attachments bucket
       s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
         name: "{{ item }}"
         state: present
         versioning: no
@@ -365,34 +463,32 @@
     - name: debug S3 Chat bucket
       debug:
         var: s3_chat
-
     # Create CORS rules for created S3 buckets #
-    - name: Apply CORS rules to S3 buckets
-      aws_s3_cors:
-        name: "{{ item }}"
-        state: present
-        rules:
-          - allowed_origins:
-              - "*"
-            allowed_methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-            allowed_headers:
-              - "*"
-            expose_headers:
-              - ETag
-            max_age_seconds: 3000
-      loop:
-        - "{{ name }}-{{ dev_environment }}-octopus-server"
-        - "{{ name }}-{{ dev_environment }}-private-octopus-server-s3"
-        - "{{ name }}-{{ dev_environment }}-chat-server-user-attachments"
-        - "{{ name }}-{{ dev_environment }}-chat-server-canned-attachments"
-        - "{{ name }}-{{ dev_environment }}-ecommerce-s3"
-        - "{{ name }}-{{ dev_environment }}-private-ecommerce-s3"
-      register: s3_cors
-
-    - name: debug S3 CORS Rules
-      debug:
-        var: s3_cors
+    # - name: Apply CORS rules to S3 buckets
+    #   aws_s3_cors:
+    #     name: "{{ item }}"
+    #     state: present
+    #     rules:
+    #       - allowed_origins:
+    #           - "*"
+    #         allowed_methods:
+    #           - GET
+    #           - POST
+    #           - PUT
+    #           - DELETE
+    #         allowed_headers:
+    #           - "*"
+    #         expose_headers:
+    #           - ETag
+    #         max_age_seconds: 3000
+    #   loop:
+    #     - "{{ name }}-{{ dev_environment }}-octopus-server"
+    #     - "{{ name }}-{{ dev_environment }}-private-octopus-server-s3"
+    #     - "{{ name }}-{{ dev_environment }}-chat-server-user-attachments"
+    #     - "{{ name }}-{{ dev_environment }}-chat-server-canned-attachments"
+    #     - "{{ name }}-{{ dev_environment }}-ecommerce-s3"
+    #     - "{{ name }}-{{ dev_environment }}-private-ecommerce-s3"
+    #   register: s3_cors
+    # - name: debug S3 CORS Rules
+    #   debug:
+    #     var: s3_cors

@@ -1,0 +1,15 @@
+--- # System configuration and updates
+- name: Get nginx release
+  shell: amazon-linux-extras install -y nginx1.12
+  when: ansible_distribution == 'Amazon'
+
+- name: Prepare nginx directories
+  file: 
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: 0755 
+    state: directory
+  with_items:
+    - /etc/nginx/ssl
+    - /etc/nginx/backup
