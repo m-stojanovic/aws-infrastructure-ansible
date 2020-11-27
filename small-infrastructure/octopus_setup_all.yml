@@ -1,0 +1,52 @@
+- name: Setup Octopus Single Server environment
+  hosts: all
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: ec2-user
+  gather_facts: yes
+  vars:
+    dev_environment: demo
+    env: small-infrastructure-environment
+    name: blizzard
+    chat: "true"
+    comments: "true"
+    analytics: "true"
+    ecommerce: "true"
+    reports: "false"
+    webpay: "true"
+    ums: "true"
+    transcoder: "true"
+    signaling: "true"
+  #   aws_access_key: "{{ lookup('env','var_aws_access_key') }}"
+  #   aws_secret_key: "{{ lookup('env','var_aws_secret_key') }}"
+  #   region: "{{ lookup('env','var_region') }}"
+  #   env: "{{ lookup('env','var_environment') }}"
+  #   dev_environment: "{{ lookup('env','var_dev_environment') }}"
+  #   name: "{{ lookup('env','var_name') }}"
+  #   db_username: "{{ lookup('env','var_db_username') }}" #octopusinfluencer
+  #   db_password: "{{ lookup('env','var_db_password') }}" #"CarnegieInfluencer!12"
+  #   chat: "{{ lookup('env','var_chat') }}"
+  #   ads: "{{ lookup('env','var_ads') }}"
+  #   signaling: "{{ lookup('env','var_signaling') }}"
+  #   analytics: "{{ lookup('env','var_analytics') }}"
+  #   reports: "{{ lookup('env','var_reports') }}"
+  #   ecommerce: "{{ lookup('env','var_ecommerce') }}"
+  #   comments: "{{ lookup('env','var_comments') }}"
+  #   transcoder: "{{ lookup('env','var_transcoder') }}"
+  #   webpay: "{{ lookup('env','var_webpay') }}"
+  #   ums: "{{ lookup('env','var_ums') }}"
+  roles:
+    - common
+    - octopus-server
+    - octopus-octopush
+    - webapp
+    - { role: octopus-chat, when: chat == '1' }
+    - { role: octopus-comments, when: comments == '1' }
+    - { role: octopus-analytics, when: analytics == '1' }
+    - { role: octopus-ecommerce, when: ecommerce == '1' }
+    - { role: webpay, when: webpay == '1' }
+    - { role: ums-server, when: ums == '1' }
+    - { role: signaling-server, when: signaling == '1' }
+    - docker_containers
+    - nginx

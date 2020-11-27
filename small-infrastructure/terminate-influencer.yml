@@ -7,7 +7,7 @@
     - name: Gather EC2 Facts
       ec2_instance_info:
         filters:
-          "tag:user:Client": "{{ name }}"
+          "tag:user:client": "{{ name }}"
       register: ec2_facts
 
     - name: Debug EC2 Facts
@@ -21,6 +21,7 @@
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         state: absent
+        wait: yes
         instance_ids: "{{ item.instance_id }}"
       with_items: "{{ ec2_facts.instances }}"
 
@@ -31,6 +32,8 @@
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         command: delete
+        wait: yes
+        wait_timeout: 420
         instance_name: "{{ name }}-{{ dev_environment }}-db"
         snapshot: "{{ name }}-{{ dev_environment }}-db"
 

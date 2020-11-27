@@ -1,0 +1,15 @@
+- hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - keys.yml
+
+  tasks:
+  - name: get facts eip
+    ec2_eip_info:
+      #  filters:
+      #  "tag:Name": "*octopus-all"
+    register: eip_facts
+
+  - name: debug
+    debug:
+      var: eip_facts

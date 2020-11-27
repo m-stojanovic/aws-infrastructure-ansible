@@ -1,9 +1,9 @@
 ---
 - name: Set hostname
   hostname:
-    name: "{{ name }}-{{ dev_env }}-transcoder"
-  when: ansible_distribution == "CentOS" or ansible_distribution == "Amazon"
+    name: "{{ name }}-{{ dev_environment }}-transcoder"
 
+  #when: ansible_distribution == "CentOS" or ansible_distribution == "Amazon"
 - name: Create directory structure
   file:
     path: "{{ item }}"
