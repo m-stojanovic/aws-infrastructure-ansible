@@ -21,6 +21,18 @@
   #   db_type: db.t2.micro
   tasks:
     # VPC #
+    - name: Debug VPC
+      debug:
+        var: AWS_ACCESS_KEY_ID
+    - name: Debug VPC
+      debug:
+        var: AWS_SECRET_ACCESS_KEY
+    - name: Debug VPC
+      debug:
+        var: var_name
+    - name: Debug VPC
+      debug:
+        var: db_username
     - name: Create VPC
       ec2_vpc_net:
         name: "{{ var_name }}-{{ dev_environment }}-vpc"
