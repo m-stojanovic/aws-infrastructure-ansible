@@ -1,23 +1,23 @@
 - hosts: localhost
   gather_facts: yes
-  vars_files:
-    - keys.yml
-  vars:
-    host_key_checking: false
-    db_username: "test"
-    db_password: "test123456!"
-    dev_environment: demo
-    env: small-infrastructure-environment
-    var_name: blizzard
-    i_type: t2.micro
-    db_type: db.t2.micro
+  # vars_files:
+  #   - keys.yml
+  # vars:
+  #   host_key_checking: false
+  #   db_username: "test"
+  #   db_password: "test123456!"
+  #   dev_environment: demo
+  #   env: small-infrastructure-environment
+  #   var_name: blizzard
+  #   i_type: t2.micro
+  #   db_type: db.t2.micro
   tasks:
     # VPC #
     - name: Create VPC
       ec2_vpc_net:
         name: "{{ var_name }}-{{ dev_environment }}-vpc"
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         cidr_block: "200.1.0.0/16"
         dns_hostnames: yes
@@ -35,8 +35,8 @@
     # AMI Image Facts #
     - name: Obtain all AZ present in region {{ AWS_REGION }}
       aws_az_info:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
       register: az_in_region
 
@@ -47,8 +47,8 @@
     # Subnet 1 #
     - name: Create Subnet 1
       ec2_vpc_subnet:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         cidr: "200.1.1.0/24"
@@ -67,8 +67,8 @@
     # Subnet 2 #
     - name: Create Subnet 2
       ec2_vpc_subnet:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         cidr: "200.1.2.0/24"
@@ -87,8 +87,8 @@
     # Internet Gateway #
     - name: Create Internet Gateway
       ec2_vpc_igw:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         state: present
@@ -101,8 +101,8 @@
     # Routing Table #
     - name: Create Routing Table
       ec2_vpc_route_table:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         vpc_id: "{{ vpc_name.vpc.id }}"
         routes:
@@ -120,8 +120,8 @@
     # Security Group for EC2 #
     - name: Create required SSH SG
       ec2_group:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         name: "{{ var_name }}-ssh-sg"
         vpc_id: "{{ vpc_name.vpc.id }}"
@@ -166,8 +166,8 @@
     # Define EC2 Postgresql Security Group #
     - name: Create required EC2 Web SG
       ec2_group:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         name: "{{ var_name }}-web-sg"
         vpc_id: "{{ vpc_name.vpc.id }}"
@@ -194,8 +194,8 @@
     # Define RDS Postgresql Security Group #
     - name: Create required RDS Postgres SG
       ec2_group:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         name: "{{ var_name }}-db-sg"
         vpc_id: "{{ vpc_name.vpc.id }}"
@@ -234,8 +234,8 @@
     # Get AWS ami image id #
     - name: Get the AMI image id
       ec2_ami_info:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         filters:
           name: "amzn2-ami-hvm-*-x86_64-gp2"
@@ -252,8 +252,8 @@
     # Create AWS keypair #
     - name: Create aws private keypair
       ec2_key:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         name: carnegie1
         key_material: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC5IkRNJQtrROT8pjKJeoA8lF7wQ6wfIcj4xxE/nRc19xTebwOMlYfpfTRfSk65FjFkf0xLuDTpa8r/dA+tmkMkj3oCFR+UKCyTFyhxWbRvVzaRckk+ph8BcENNMHd8uAAukBnHlJiPwI1+BCaSNR1LhUGTRBiiTJMK8dxfBHnfGfSm3s7j8yVQbYcGk8GC8cYk5m6ZfF3UBeD0/P6mdx0eIKCGkfk2yWFHOK+BAJgwC0GNPChxHY07ywBk7+X7fIj3+ldyXIH+vtBkx6nWXJ1nw9zz1mFCa9QziybsglcOS//zKxmQ4lAVOcul4xpiY6fODHtXKS2RB1dm0ADKuDUb CarnegieKey"
@@ -261,8 +261,8 @@
     # Create EC2 octopus instance #
     - name: Change octopus instance state by tag
       ec2:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         key_name: carnegie1
         instance_type: "{{ i_type }}"
@@ -301,8 +301,8 @@
     # Gather EC2 All Instance Facts #
     - name: Gather EC2 Facts
       ec2_instance_info:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         filters:
           "tag:Name": "{{ var_name }}-{{ dev_environment }}-all"
@@ -318,8 +318,8 @@
     # Assign EIP to EC2 {{ var_name }}-{{ dev_environment }}-all instance #
     - name: Assign EIP to {{ var_name }}-{{ dev_environment }}-all instance
       ec2_eip:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         device_id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
       tags:
@@ -328,8 +328,8 @@
     # Gather EIP Facts to run octopus_setup_all.yml #
     - name: Gather EIP Facts
       ec2_eip_info:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         filters:
           instance-id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
@@ -361,8 +361,8 @@
     # Create EC2 transcoder instance #
     - name: Change transcoder instance stage by tag
       ec2:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         key_name: carnegie1
         instance_type: "{{ i_type }}"
@@ -401,8 +401,8 @@
     # Gather EC2 Transcoder Instance Facts #
     - name: Gather EC2 Transcoder Facts
       ec2_instance_info:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         filters:
           "tag:Name": "{{ var_name }}-{{ dev_environment }}-transcoder"
@@ -418,8 +418,8 @@
     # Assign EIP to EC2 {{ var_name }}-{{ dev_environment }}-all instance #
     - name: Assign EIP to {{ var_name }}-{{ dev_environment }}-transcoder instance
       ec2_eip:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         device_id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
       tags:
@@ -428,8 +428,8 @@
     # Gather EIP Facts to run octopus_setup_transcoder.yml #
     - name: Gather EIP Facts
       ec2_eip_info:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         filters:
           instance-id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
@@ -461,8 +461,8 @@
     # Create RDS Postgresql subnet group #
     - name: Create RDS subnet group
       rds_subnet_group:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         state: present
         name: "{{ var_name }}-subnet-db-public"
@@ -479,8 +479,8 @@
     # Create RDS instance for octopus server #
     - name: Create RDS octopus instance
       rds:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         command: create
         db_engine: postgres
@@ -510,8 +510,8 @@
     # Create required S3 buckets #
     - name: Create S3 buckets
       s3_bucket:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         name: "{{ item }}"
         state: present
@@ -536,8 +536,8 @@
     # Create required S3 chat-server-canned-attachments bucket #
     - name: Create S3 chat-server-canned-attachments bucket
       s3_bucket:
-        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
-        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        aws_access_key: "{{ var_aws_access_key }}"
+        aws_secret_key: "{{ var_aws_secret_key }}"
         region: "{{ AWS_REGION }}"
         name: "{{ item }}"
         state: present
