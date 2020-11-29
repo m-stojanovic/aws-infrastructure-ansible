@@ -11,6 +11,8 @@
     var_name: "{{ lookup('env','var_name') }}"
     db_username: "{{ lookup('env','var_db_username') }}"
     db_password: "{{ lookup('env','var_db_password') }}"
+    i_type: "{{ lookup('env','var_octopus_instance_size') }}"
+    db_type: "{{ lookup('env','var_octopus_rds_size') }}"
   #   host_key_checking: false
   #   db_username: "test"
   #   db_password: "test123456!"
