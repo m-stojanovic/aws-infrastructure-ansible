@@ -1,12 +1,12 @@
 ---
 - name: Create directory structure
-  file: 
+  file:
     path: "{{ item }}"
     owner: "{{ user }}"
-    group: "{{ user }}" 
-    mode: 0755 
+    group: "{{ user }}"
+    mode: 0755
     state: directory
   with_items:
-    - /carnegie/webapp/{{ name }}/mobile
-    - /carnegie/webapp/{{ name }}/ecommerce
-    - /carnegie/webapp/{{ name }}/.well-known
+    - /carnegie/webapp/{{ var_name }}/mobile
+    - /carnegie/webapp/{{ var_name }}/ecommerce
+    - /carnegie/webapp/{{ var_name }}/.well-known
