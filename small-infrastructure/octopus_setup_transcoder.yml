@@ -23,7 +23,7 @@
     region: "{{ lookup('env','var_region') }}"
     env: "{{ lookup('env','var_environment') }}"
     dev_environment: "{{ lookup('env','var_dev_environment') }}"
-    name: "{{ lookup('env','var_name') }}"
+    var_name: "{{ lookup('env','var_name') }}"
     db_username: "{{ lookup('env','var_db_username') }}"
     db_password: "{{ lookup('env','var_db_password') }}"
     chat: "{{ lookup('env','var_chat') }}"
