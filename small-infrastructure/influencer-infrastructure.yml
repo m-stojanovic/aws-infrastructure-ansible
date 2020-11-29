@@ -344,6 +344,7 @@
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
         device_id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
+        release_on_disassociation: yes
       tags:
         - elastic_ip_octopus
 
@@ -444,6 +445,7 @@
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
         device_id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
+        release_on_disassociation: yes
       tags:
         - elastic_ip_transcoder
 
