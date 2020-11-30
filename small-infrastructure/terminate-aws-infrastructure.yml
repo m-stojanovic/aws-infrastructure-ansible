@@ -32,8 +32,8 @@
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         command: delete
-        wait: yes
-        wait_timeout: 420
+        #wait: yes
+        #wait_timeout: 420
         instance_name: "{{ name }}-{{ dev_environment }}-db"
         snapshot: "{{ name }}-{{ dev_environment }}-db"
 
