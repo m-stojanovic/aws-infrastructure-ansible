@@ -45,7 +45,7 @@
 
 - name: Debug message
   debug:
-    msg: "Tenant name {{ var_name }} and environment {{ env }} selected"
+    msg: "Tenant name {{ var_name }} and environment {{ deV_environment }} selected"
 
 - name: Install Screenfetch
   get_url:

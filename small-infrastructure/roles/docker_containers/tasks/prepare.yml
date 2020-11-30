@@ -1,16 +1,4 @@
 ---
-# Condition for vm.commit.memory - RabbitMQ
-- name: Check does redis directory exists
-  stat:
-    path: /carnegie/docker-compose/rabbitmq
-  register: dir_rabbit
-
-# Condition for THP Pages - Redis
-- name: Check does redis directory exists
-  stat:
-    path: /carnegie/docker-compose/redis
-  register: dir_redis
-
 # Needed for RabbitMQ
 - name: Recommended to set the Linux kernel overcommit memory settings
   sysctl:
@@ -19,7 +7,6 @@
     sysctl_file: /etc/sysctl.conf
     state: present
     reload: yes
-  when: dir_rabbit.stat.exists
 
 # Transparent Huge Pages (causes latency and mem usage issues with redis) - need to disable
 - name: Disable THP in kernel
@@ -29,7 +16,6 @@
     owner: root
     group: root
     mode: 0755
-  when: dir_redis.stat.exists
 
 - name: Start, Enable service disable-transparent-huge-pages.service
   systemd:
@@ -37,11 +23,15 @@
     name: disable-transparent-huge-pages.service
     state: started
     enabled: yes
-  when: dir_redis.stat.exists
-  ignore_errors: yes
 
 - name: Prepare repository to download required packages
   yum:
-    name: epel-release
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    state: present
+  when: ansible_facts['distribution'] == 'Amazon'
+
+- name: Import EPEL GPG key.
+  rpm_key:
+    key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7"
     state: present
   when: ansible_facts['distribution'] == 'Amazon'

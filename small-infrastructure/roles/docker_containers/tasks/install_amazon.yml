@@ -6,20 +6,27 @@
 
 - name: Update all packages
   yum:
-    name: '*'
+    name: "*"
     state: latest
     update_only: yes
   when: docker_check.stderr.find('service could not be found') != -1
 
 - name: Install pip3
   yum:
-    name: ['python3-pip']
+    name: ["python3-pip"]
     state: present
   when: docker_check.stderr.find('service could not be found') != -1
 
 - name: Ensure a list of yum packages are installed
   yum:
-    name: ['python-pip', 'yum-utils', 'device-mapper-persistent-data', 'lvm2', 'amazon-linux-extras']
+    name:
+      [
+        "python-pip",
+        "yum-utils",
+        "device-mapper-persistent-data",
+        "lvm2",
+        "amazon-linux-extras",
+      ]
     state: latest
     update_cache: yes
   when: docker_check.stderr.find('service could not be found') != -1
@@ -41,11 +48,11 @@
 
 - name: Add user to docker group
   user:
-    name: "{{ user }}"
+    name: ec2-user
     groups: docker
     append: yes
-  when: docker_check.stderr.find('service could not be found') != -1
 
+  #when: docker_check.stderr.find('service could not be found') != -1
 - name: Check is docker-compose installed
   command: docker-compose --version
   register: docker_compose_check
@@ -61,4 +68,3 @@
     dest: /usr/bin/docker-compose
     state: link
   when: docker_compose_check.msg.find('No such file or directory') != -1
-

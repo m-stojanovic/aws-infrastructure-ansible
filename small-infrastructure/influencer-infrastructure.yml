@@ -1,26 +1,15 @@
 - hosts: localhost
   gather_facts: yes
-  # vars_files:
-  #   - keys.yml
   vars:
     AWS_ACCESS_KEY_ID: "{{ lookup('env','var_aws_access_key') }}"
     AWS_SECRET_ACCESS_KEY: "{{ lookup('env','var_aws_secret_key') }}"
     AWS_REGION: "{{ lookup('env','var_region') }}"
-    env: "{{ lookup('env','var_environment') }}"
     dev_environment: "{{ lookup('env','var_dev_environment') }}"
     var_name: "{{ lookup('env','var_name') }}"
     db_username: "{{ lookup('env','var_db_username') }}"
     db_password: "{{ lookup('env','var_db_password') }}"
     i_type: "{{ lookup('env','var_octopus_instance_size') }}"
     db_type: "{{ lookup('env','var_octopus_rds_size') }}"
-  #   host_key_checking: false
-  #   db_username: "test"
-  #   db_password: "test123456!"
-  #   dev_environment: demo
-  #   env: small-infrastructure-environment
-  #   var_name: blizzard
-  #   i_type: t2.micro
-  #   db_type: db.t2.micro
   tasks:
     # VPC #
     - name: Debug VPC
@@ -301,10 +290,6 @@
             delete_on_termination: yes
             volume_type: gp2
             volume_size: 20
-            # tags:
-            #   Name: "{{ var_name }}-{{ dev_environment }}-volume"
-            #   user:client: "{{ var_name }}"
-            #   user:Environment: "{{ dev_environment }}"
         instance_tags:
           Name: "{{ var_name }}-{{ dev_environment }}-all"
           user:client: "{{ var_name }}"
@@ -402,10 +387,6 @@
             delete_on_termination: yes
             volume_type: gp2
             volume_size: 20
-            # tags:
-            # Name: "{{ var_name }}-{{ dev_environment }}-transcoder-volume"
-            # user:client: "{{ var_name }}"
-            # user:Environment: "{{ dev_environment }}"
         instance_tags:
           Name: "{{ var_name }}-{{ dev_environment }}-transcoder"
           user:client: "{{ var_name }}"
