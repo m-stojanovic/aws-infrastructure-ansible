@@ -43,10 +43,6 @@
     name: lxml
     state: present
 
-- name: Debug message
-  debug:
-    msg: "Tenant name {{ var_name }} and environment {{ deV_environment }} selected"
-
 - name: Install Screenfetch
   get_url:
     url: https://raw.githubusercontent.com/KittyKatt/screenFetch/master/screenfetch-dev
