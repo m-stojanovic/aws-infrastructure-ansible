@@ -1,4 +1,4 @@
---- # Prepare directories
+---
 - name: Create directory structure
   file:
     path: "{{ item }}"
@@ -12,23 +12,23 @@
 
 - name: Unpack archive
   unarchive:
-    src: /tmp/octopus-ecommerce/octopus-ecommerce.tar
+    src: /tmp/octopus-subscription/octopus-subscription.tar
     dest: /carnegie/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"
     list_files: true
     mode: 0755
 
-- name: Configure
+- name: Copy octopussubscription.service to init.d
   template:
-    src: ecommerce.service.j2
+    src: octopussubscription.service.j2
     dest: /etc/init.d/{{ service }}
     owner: root
     group: root
     mode: 0755
 
-- name: Enable octopus-ecommerce and daemon reload
+- name: Enable octopus-subscription and daemon reload
   systemd:
-    name: octopus-ecommerce
+    name: octopus-subscription
     enabled: yes
     daemon_reload: yes

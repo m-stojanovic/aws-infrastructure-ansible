@@ -18,7 +18,7 @@
 
 - name: Unpack archive
   unarchive:
-    src: /tmp/transcoder/transcoder.tar
+    src: /tmp/transcoder-server/transcoder.tar
     dest: /carnegie/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"

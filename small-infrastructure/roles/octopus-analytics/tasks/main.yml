@@ -12,7 +12,7 @@
 
 - name: Unpack archive
   unarchive:
-    src: /tmp/analytics/octopus-analytics.tar
+    src: /tmp/octopus-analytics/octopus-analytics.tar
     dest: /carnegie/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"

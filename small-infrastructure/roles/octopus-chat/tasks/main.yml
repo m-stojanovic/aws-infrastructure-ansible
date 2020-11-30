@@ -12,7 +12,7 @@
 
 - name: Unpack archive
   unarchive:
-    src: /tmp/chat/octopus-chat.tar
+    src: /tmp/octopus-chat/octopus-chat.tar
     dest: /carnegie/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"

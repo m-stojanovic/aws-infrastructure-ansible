@@ -12,7 +12,7 @@
 
 - name: Unpack archive
   unarchive:
-    src: /tmp/comments/octopus-comments.tar
+    src: /tmp/octopus-comments/octopus-comments.tar
     dest: /carnegie/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"

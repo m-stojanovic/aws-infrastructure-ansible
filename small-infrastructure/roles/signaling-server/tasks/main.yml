@@ -12,7 +12,7 @@
 
 - name: Unpack archive
   unarchive:
-    src: /tmp/signaling/signaling.tar
+    src: /tmp/signaling-server/signaling.tar
     dest: /carnegie/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"
