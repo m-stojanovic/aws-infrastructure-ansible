@@ -1,0 +1,38 @@
+--- # Prepare directories
+- name: Set hostname
+  hostname:
+    name: "{{ var_name }}-{{ dev_environment }}-all"
+
+- name: Create directory structure
+  file:
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /carnegie/shelf/{{ service }}
+    - /carnegie/services/{{ service }}
+
+- name: Unpack archive
+  unarchive:
+    src: /tmp/octopus-chat/octopus-chat.tar
+    dest: /carnegie/services/{{ service }}
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    list_files: true
+    mode: 0755
+
+- name: Configure service
+  template:
+    src: octopus-chat.service.j2
+    dest: /etc/init.d/{{ service }}
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable octopus-chat and daemon reload
+  systemd:
+    name: octopus-chat
+    enabled: yes
+    daemon_reload: yes

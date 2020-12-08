@@ -1,0 +1,30 @@
+---
+# Config task treats all files in template directory as templates
+# It creates required directory path on remote host
+# Usefull to parse multiple configuration files for specific container_service
+
+- name: Ensure directory structure exists on remote host
+  file:
+    state: directory
+    dest: "/carnegie/docker-compose/{{ item }}"
+    group: "ec2-user"
+    owner: "ec2-user"
+  with_items:
+    - redis
+    - rabbitmq
+
+- name: Ensure files are populated from templates
+  template:
+    src: "{{ item.src }}"
+    dest: "/carnegie/docker-compose/redis/{{ item.path }}"
+    group: "ec2-user"
+    owner: "ec2-user"
+  with_filetree: "templates/redis"
+
+- name: Ensure files are populated from templates
+  template:
+    src: "{{ item.src }}"
+    dest: "/carnegie/docker-compose/rabbitmq/{{ item.path }}"
+    group: "ec2-user"
+    owner: "ec2-user"
+  with_filetree: "templates/rabbitmq"

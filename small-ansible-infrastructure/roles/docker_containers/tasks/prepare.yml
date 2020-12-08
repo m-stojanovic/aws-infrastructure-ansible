@@ -1,0 +1,25 @@
+---
+# Needed for RabbitMQ
+- name: Recommended to set the Linux kernel overcommit memory settings
+  sysctl:
+    name: vm.overcommit_memory
+    value: "1"
+    sysctl_file: /etc/sysctl.conf
+    state: present
+    reload: yes
+
+# Transparent Huge Pages (causes latency and mem usage issues with redis) - need to disable
+- name: Disable THP in kernel
+  template:
+    src: "redis/disable-transparent-huge-pages.service"
+    dest: /etc/systemd/system/disable-transparent-huge-pages.service
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Start, Enable service disable-transparent-huge-pages.service
+  systemd:
+    daemon_reload: yes
+    name: disable-transparent-huge-pages.service
+    state: started
+    enabled: yes

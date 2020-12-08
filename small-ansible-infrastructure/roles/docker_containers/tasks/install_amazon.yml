@@ -1,0 +1,70 @@
+---
+- name: Check is docker installed
+  command: systemctl status docker
+  register: docker_check
+  ignore_errors: yes
+
+- name: Update all packages
+  yum:
+    name: "*"
+    state: latest
+    update_only: yes
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Install pip3
+  yum:
+    name: ["python3-pip"]
+    state: present
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Ensure a list of yum packages are installed
+  yum:
+    name:
+      [
+        "python-pip",
+        "yum-utils",
+        "device-mapper-persistent-data",
+        "lvm2",
+        "amazon-linux-extras",
+      ]
+    state: latest
+    update_cache: yes
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Add extras repository
+  shell: yum-config-manager --enable extras
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Install docker-ce via amazon-linux-extras packages
+  shell: "amazon-linux-extras install docker=18.06.1 -y"
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Enable Docker CE service at startup
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Add user to docker group
+  user:
+    name: ec2-user
+    groups: docker
+    append: yes
+
+  #when: docker_check.stderr.find('service could not be found') != -1
+- name: Check is docker-compose installed
+  command: docker-compose --version
+  register: docker_compose_check
+  ignore_errors: yes
+
+- name: Install docker-compose
+  command: pip3 install docker-compose
+  when: docker_compose_check.msg.find('No such file or directory') != -1
+
+- name: Symlink /usr/local/bin/ to /usr/bin
+  file:
+    src: /usr/local/bin/docker-compose
+    dest: /usr/bin/docker-compose
+    state: link
+  when: docker_compose_check.msg.find('No such file or directory') != -1
