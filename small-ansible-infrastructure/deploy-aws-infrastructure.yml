@@ -1,0 +1,622 @@
+- hosts: localhost
+  gather_facts: no
+  vars:
+    AWS_ACCESS_KEY_ID: "{{ lookup('env','var_aws_access_key') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ lookup('env','var_aws_secret_key') }}"
+    AWS_REGION: "{{ lookup('env','var_region') }}"
+    dev_environment: "{{ lookup('env','var_dev_environment') }}"
+    var_name: "{{ lookup('env','var_name') }}"
+    db_username: "{{ lookup('env','var_db_username') }}"
+    db_password: "{{ lookup('env','var_db_password') }}"
+    i_type: "{{ lookup('env','var_octopus_instance_size') }}"
+    db_type: "{{ lookup('env','var_octopus_rds_size') }}"
+  tasks:
+    # VPC #
+    - name: Create VPC
+      ec2_vpc_net:
+        name: "{{ var_name }}-{{ dev_environment }}-vpc"
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        cidr_block: "200.1.0.0/16"
+        dns_hostnames: yes
+        dns_support: yes
+        tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-vpc"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: vpc_name
+
+    - name: Debug VPC
+      debug:
+        var: vpc_name
+
+    # AMI Image Facts #
+    - name: Obtain all AZ present in region {{ AWS_REGION }}
+      aws_az_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+      register: az_in_region
+
+    - name: Display all AZ present in region {{ AWS_REGION }}
+      debug:
+        var: az_in_region
+
+    # Subnet 1 #
+    - name: Create Subnet 1
+      ec2_vpc_subnet:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        cidr: "200.1.1.0/24"
+        az: "{{ az_in_region.availability_zones[0].zone_name }}"
+        map_public: yes
+        tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-public-subnet-1"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: public_subnet_1
+
+    - name: Debug Subnet 1
+      debug:
+        var: public_subnet_1
+
+    # Subnet 2 #
+    - name: Create Subnet 2
+      ec2_vpc_subnet:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        cidr: "200.1.2.0/24"
+        az: "{{ az_in_region.availability_zones[1].zone_name }}"
+        map_public: yes
+        tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-public-subnet-2"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: public_subnet_2
+
+    - name: Debug Subnet 2
+      debug:
+        var: public_subnet_2
+
+    # Internet Gateway #
+    - name: Create Internet Gateway
+      ec2_vpc_igw:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        state: present
+        tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-igw"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: igw
+
+    # Routing Table #
+    - name: Create Routing Table
+      ec2_vpc_route_table:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        routes:
+          - dest: "0.0.0.0/0"
+            gateway_id: "{{ igw.gateway_id }}"
+        subnets:
+          - "{{ public_subnet_1.subnet.id }}"
+          - "{{ public_subnet_2.subnet.id }}"
+        tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-rt"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: rt
+
+    # Security Group for EC2 #
+    - name: Create required SSH SG
+      ec2_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ var_name }}-ssh-sg"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        description: "SSH ports for EC2 single server"
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip:
+              - 217.24.19.64/29
+              - 82.117.216.88/30
+              - 15.188.31.234/32
+          - proto: tcp
+            from_port: 15672
+            to_port: 15672
+            cidr_ip:
+              - 217.24.19.64/29
+              - 82.117.216.88/30
+          - proto: tcp
+            from_port: 10050
+            to_port: 10050
+            cidr_ip:
+              - 217.24.19.64/29
+              - 82.117.216.88/30
+              - 34.254.36.247/32
+              - 50.16.146.15/32
+          - proto: tcp
+            from_port: 0
+            to_port: 0
+            cidr_ip:
+              - "200.1.0.0/16"
+        rules_egress:
+          - proto: "-1"
+            from_port: 0
+            to_port: 0
+            cidr_ip: "0.0.0.0/0"
+        tags:
+          Name: "{{ var_name }}-ssh-sg"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+
+    # Define EC2 Postgresql Security Group #
+    - name: Create required EC2 Web SG
+      ec2_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ var_name }}-web-sg"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        description: "Web ports for EC2 single server"
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: "0.0.0.0/0"
+          - proto: tcp
+            from_port: 443
+            to_port: 443
+            cidr_ip: "0.0.0.0/0"
+        rules_egress:
+          - proto: "-1"
+            from_port: 0
+            to_port: 0
+            cidr_ip: "0.0.0.0/0"
+        tags:
+          Name: "{{ var_name }}-web-sg"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+
+    # Define RDS Postgresql Security Group #
+    - name: Create required RDS Postgres SG
+      ec2_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ var_name }}-db-sg"
+        vpc_id: "{{ vpc_name.vpc.id }}"
+        description: "DB ports for EC2 single server"
+        rules:
+          - proto: tcp
+            from_port: 5432
+            to_port: 5432
+            cidr_ip:
+              - 200.1.0.0/16
+              - 217.24.19.64/29
+              - 82.117.216.88/30
+              - 15.188.31.234/32
+          - proto: tcp
+            from_port: 10050
+            to_port: 10050
+            cidr_ip:
+              - 217.24.19.64/29
+              - 82.117.216.88/30
+              - 34.254.36.247/32
+              - 50.16.146.15/32
+        rules_egress:
+          - proto: -1
+            from_port: 0
+            to_port: 0
+            cidr_ip: "0.0.0.0/0"
+        tags:
+          Name: "{{ var_name }}-db-sg"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: db_sg
+
+    - name: Debug a DB SG
+      debug:
+        var: db_sg
+
+    # Create RDS Postgresql subnet group #
+    - name: Create RDS subnet group
+      rds_subnet_group:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        state: present
+        name: "{{ var_name }}-subnet-db-public"
+        description: "RDS Subnet"
+        subnets:
+          - "{{ public_subnet_1.subnet.id }}"
+          - "{{ public_subnet_2.subnet.id }}"
+      register: rds_subnet_group
+
+    - name: Debug the RDS Subnet Group
+      debug:
+        var: rds_subnet_group
+
+    ##########################################
+    # Create RDS instance for octopus server #
+    ##########################################
+    - name: Create RDS octopus instance
+      rds:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        command: create
+        db_engine: postgres
+        engine_version: "9.6.11"
+        db_name: "octopus_server_db"
+        instance_name: "{{ var_name }}-{{ dev_environment }}-all-db"
+        instance_type: "{{ db_type }}"
+        multi_zone: "false"
+        username: "{{ db_username }}"
+        password: "{{ db_password }}"
+        backup_window: "04:00-04:30"
+        maint_window: "sun:04:30-sun:05:30"
+        backup_retention: "7"
+        publicly_accessible: "true"
+        port: 5432
+        size: "20"
+        vpc_security_groups: "{{ db_sg.group_id }}"
+        subnet: "{{ var_name }}-subnet-db-public"
+        tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-all-db"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+
+    # Gather RDS Facts #
+    - name: Gather {{ var_name }}-{{ dev_environment }}-all-db RDS instance Facts
+      rds_instance_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        db_instance_identifier: "{{ var_name }}-{{ dev_environment }}-all-db"
+      register: rds_facts
+
+    - name: debug RDS Facts
+      debug:
+        var: rds_facts
+
+    - name: set facts for all-db RDS instance
+      set_fact:
+        endpoint_db_all: "{{ rds_facts.instances[0].endpoint.address }}"
+
+    # Get AWS ami image id #
+    - name: Get the AMI image id
+      ec2_ami_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        filters:
+          name: "amzn2-ami-hvm-*-x86_64-gp2"
+      register: ami_find
+
+    - name: Sort the latest AMI
+      set_fact:
+        latest_ami: "{{ ami_find.images | sort(attribute='creation_date') | last }}"
+
+    - name: Debug the AMI image
+      debug:
+        var: latest_ami
+
+    # Create AWS keypair #
+    - name: Create aws private keypair
+      ec2_key:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: devops
+        key_material: "ssh-rsa SomeXXXKey"
+
+    ###############################
+    # Create EC2 octopus instance #
+    ###############################
+    - name: Change octopus instance state by tag
+      ec2:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        key_name: devops
+        instance_type: "{{ i_type }}"
+        image: "{{ latest_ami.image_id }}"
+        group:
+          - "{{ var_name }}-ssh-sg"
+          - "{{ var_name }}-web-sg"
+        assign_public_ip: no
+        vpc_subnet_id: "{{ public_subnet_1.subnet.id }}"
+        volumes:
+          - device_name: /dev/xvda
+            delete_on_termination: yes
+            volume_type: gp2
+            volume_size: 20
+        instance_tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-all"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+        exact_count: 1
+        count_tag:
+          Name: "{{ var_name }}-{{ dev_environment }}-all"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: octopus_var
+
+    - name: Debug {{ var_name }}-{{ dev_environment }}-all result
+      debug:
+        var: octopus_var
+
+    # Gather EC2 All Instance Facts #
+    - name: Gather EC2 Facts
+      ec2_instance_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        filters:
+          "tag:Name": "{{ var_name }}-{{ dev_environment }}-all"
+      register: ec2_octopus_facts
+
+    - name: Debug EC2 Facts
+      debug:
+        var: ec2_octopus_facts
+
+    - name: Wait for EC2 Instance to boot
+      command: "sleep 80"
+
+    # Assign EIP to EC2 {{ var_name }}-{{ dev_environment }}-all instance #
+    - name: Assign EIP to {{ var_name }}-{{ dev_environment }}-all instance
+      ec2_eip:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        device_id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
+        release_on_disassociation: yes
+        state: present
+      tags:
+        - elastic_ip_octopus
+
+    # Gather EIP Facts to run octopus_setup_all.yml #
+    - name: Gather EIP Facts
+      ec2_eip_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        filters:
+          instance-id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
+      tags:
+        - elastic_ip_octopus
+      register: eip_facts_octopus
+
+    - name: Debug EIP Facts
+      debug:
+        var: eip_facts_octopus
+
+    - name: Set the ip_addr_all Fact
+      set_fact:
+        ip_addr_all: "{{ eip_facts_octopus.addresses[0].public_ip }}"
+
+    - name: Debug ip address of the server
+      debug:
+        var: ip_addr_all
+
+    # Install Octopus Services #
+    - name: Install octopus services on EC2 octopus instance
+      command: "ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -u ec2-user -i {{ ip_addr_all }}, --private-key ~/.ssh/devops.pem octopus_setup_all.yml"
+      register: octopus_setup
+
+    - name: Debug {{ var_name }}-{{ dev_environment }}-all instance setup
+      debug:
+        var: octopus_setup
+
+    ##################################
+    # Create EC2 transcoder instance #
+    ##################################
+    - name: Change transcoder instance stage by tag
+      ec2:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        key_name: devops
+        instance_type: "{{ i_type }}"
+        image: "{{ latest_ami.image_id }}"
+        group:
+          - "{{ var_name }}-ssh-sg"
+          - "{{ var_name }}-web-sg"
+        assign_public_ip: no
+        vpc_subnet_id: "{{ public_subnet_1.subnet.id }}"
+        volumes:
+          - device_name: /dev/xvda
+            delete_on_termination: yes
+            volume_type: gp2
+            volume_size: 20
+        instance_tags:
+          Name: "{{ var_name }}-{{ dev_environment }}-transcoder"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+        exact_count: 1
+        count_tag:
+          Name: "{{ var_name }}-{{ dev_environment }}-transcoder"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+      register: transcoder_var
+
+    - name: Debug {{ var_name }}-{{ dev_environment }}-transcoder result
+      debug:
+        var: transcoder_var
+
+    # Gather EC2 Transcoder Instance Facts #
+    - name: Gather EC2 Transcoder Facts
+      ec2_instance_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        filters:
+          "tag:Name": "{{ var_name }}-{{ dev_environment }}-transcoder"
+      register: ec2_transcoder_facts
+
+    - name: Debug EC2 Facts
+      debug:
+        var: ec2_transcoder_facts
+
+    - name: Wait for EC2 Instance to boot
+      command: "sleep 80"
+
+    # Assign EIP to EC2 {{ var_name }}-{{ dev_environment }}-transcoder instance #
+    - name: Assign EIP to {{ var_name }}-{{ dev_environment }}-transcoder instance
+      ec2_eip:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        device_id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
+        release_on_disassociation: yes
+        state: present
+      tags:
+        - elastic_ip_transcoder
+
+    # Gather EIP Facts to run octopus_setup_transcoder.yml #
+    - name: Gather EIP Facts
+      ec2_eip_info:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        filters:
+          instance-id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
+      tags:
+        - elastic_ip_transcoder
+      register: eip_facts_transcoder
+
+    - name: Debug EIP Facts
+      debug:
+        var: eip_facts_transcoder
+
+    - name: Set the ip_addr_transcoder Fact
+      set_fact:
+        ip_addr_transcoder: "{{ eip_facts_transcoder.addresses[0].public_ip }}"
+
+    - name: Debug ip address of the server
+      debug:
+        var: ip_addr_transcoder
+
+    # Install transcoder service #
+    - name: Install transcoder service on EC2 transcoder instance
+      command: "ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -u ec2-user -i {{ ip_addr_transcoder }}, --private-key ~/.ssh/devops.pem octopus_setup_transcoder.yml"
+      register: transcoder_setup
+
+    - name: Debug transcoder instance setup
+      debug:
+        var: transcoder_setup
+
+    # Create missing databases on RDS instances #
+    - name: Create multiple databases on RDS all-db db instance
+      postgresql_db:
+        login_host: "{{ endpoint_db_all }}"
+        login_user: "{{ db_username }}"
+        login_password: "{{ db_password }}"
+        port: 5432
+        state: present
+        encoding: UTF8
+        lc_collate: "en_US.UTF-8"
+        lc_ctype: "en_US.UTF-8"
+        name: "{{ item }}"
+      loop:
+        - octopus_analytics_db
+        - octopus_ecommerce_db
+        - octopus_chat_db
+        - octopus_comments_db
+        - octopus_log_db
+        - ums_db
+
+    # Create required S3 buckets #
+    - name: Create S3 buckets
+      s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        versioning: no
+        tags:
+          Name: "{{ item }}"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+        purge_tags: yes
+      loop:
+        - "{{ var_name }}-{{ dev_environment }}-octopus-server"
+        - "{{ var_name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ var_name }}-{{ dev_environment }}-chat-server-user-attachments"
+        - "{{ var_name }}-{{ dev_environment }}-ecommerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-private-ecommerce-s3"
+      register: s3_debug
+
+    - name: debug S3 Bucket
+      debug:
+        var: s3_debug
+
+    # Create required S3 chat-server-canned-attachments bucket #
+    - name: Create S3 chat-server-canned-attachments bucket
+      s3_bucket:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        versioning: no
+        policy: '{ "Version": "2012-10-17", "Statement": [ { "Sid": "PublicReadGetObject", "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "s3:GetObject", "Resource": "arn:aws:s3:::{{ var_name }}-{{ dev_environment }}-chat-server-canned-attachments/*" } ] }'
+        tags:
+          Name: "{{ item }}"
+          user:client: "{{ var_name }}"
+          user:Environment: "{{ dev_environment }}"
+        purge_tags: yes
+      loop:
+        - "{{ var_name }}-{{ dev_environment }}-chat-server-canned-attachments"
+      register: s3_chat
+
+    - name: debug S3 Chat bucket
+      debug:
+        var: s3_chat
+
+    # Create CORS rules for created S3 buckets #
+    - name: Apply CORS rules to S3 buckets
+      aws_s3_cors:
+        aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
+        aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+        region: "{{ AWS_REGION }}"
+        name: "{{ item }}"
+        state: present
+        rules:
+          - allowed_origins:
+              - "*"
+            allowed_methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+            allowed_headers:
+              - "*"
+            expose_headers:
+              - ETag
+            max_age_seconds: 3000
+      loop:
+        - "{{ var_name }}-{{ dev_environment }}-octopus-server"
+        - "{{ var_name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ var_name }}-{{ dev_environment }}-chat-server-user-attachments"
+        - "{{ var_name }}-{{ dev_environment }}-chat-server-canned-attachments"
+        - "{{ var_name }}-{{ dev_environment }}-ecommerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-private-ecommerce-s3"
+      register: s3_cors
+    - name: debug S3 CORS Rules
+      debug:
+        var: s3_cors
