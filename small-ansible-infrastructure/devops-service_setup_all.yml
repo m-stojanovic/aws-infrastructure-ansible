@@ -18,7 +18,7 @@
   roles:
     - common
     - devops-service-server
-    - devops-service-devops-serviceh
+    - devops-service-push
     - appweb
     - { role: devops-service-chat, when: chat == '1' }
     - { role: devops-service-ments, when: ments == '1' }

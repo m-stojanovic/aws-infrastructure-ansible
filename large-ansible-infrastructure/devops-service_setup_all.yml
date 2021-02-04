@@ -11,7 +11,7 @@
     commerce: "{{ lookup('env','var_commerce') }}"
   roles:
     - common
-    - devops-service-devops-serviceh
+    - devops-service-push
     - devops-service-chat
     - devops-service-ments
     - devops-service-lyrics
