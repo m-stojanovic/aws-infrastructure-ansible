@@ -1,0 +1,34 @@
+--- # Prepare directories
+- name: Create directory structure
+  file:
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /devops/shelf/{{ service }}
+    - /devops/services/{{ service }}
+
+- name: Unpack archive
+  unarchive:
+    src: /tmp/devops-service-commerce/devops-service-commerce.tar
+    dest: /devops/services/{{ service }}
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    list_files: true
+    mode: 0755
+
+- name: Configure
+  template:
+    src: commerce.service.j2
+    dest: /etc/init.d/{{ service }}
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable devops-service-commerce and daemon reload
+  systemd:
+    name: devops-service-commerce
+    enabled: yes
+    daemon_reload: yes

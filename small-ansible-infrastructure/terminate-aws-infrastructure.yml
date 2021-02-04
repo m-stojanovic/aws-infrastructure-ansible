@@ -47,12 +47,12 @@
         name: "{{ item }}"
         force: yes
       loop:
-        - "{{ var_name }}-{{ dev_environment }}-octopus-server"
-        - "{{ var_name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ var_name }}-{{ dev_environment }}-devops-service-server"
+        - "{{ var_name }}-{{ dev_environment }}-private-devops-service-server-s3"
         - "{{ var_name }}-{{ dev_environment }}-chat-server-user-attachments"
         - "{{ var_name }}-{{ dev_environment }}-chat-server-canned-attachments"
-        - "{{ var_name }}-{{ dev_environment }}-ecommerce-s3"
-        - "{{ var_name }}-{{ dev_environment }}-private-ecommerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-commerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-private-commerce-s3"
 
     # Wait for RDS instances to terminate #
     - name: Sleep for 10 minutes

@@ -1,0 +1,17 @@
+---
+- name: Setup Devops Single Server environment
+  hosts: all
+  vars:
+    dev_environment: "{{ lookup('env','var_dev_environment') }}"
+    var_name: "{{ lookup('env','var_name') }}"
+    subs: "{{ lookup('env','var_subs') }}"
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: ec2-user
+  gather_facts: yes
+  roles:
+    - common
+    - devops-service-server
+    - user-server
+    - { role: devops-service-subs, when: subs == '1' }

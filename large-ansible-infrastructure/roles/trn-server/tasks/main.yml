@@ -1,0 +1,40 @@
+---
+- name: Set hostname
+  hostname:
+    name: "{{ var_name }}-{{ dev_environment }}-trn"
+
+  #when: ansible_distribution == "CentOS" or ansible_distribution == "Amazon"
+- name: Create directory structure
+  file:
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /devops/backup/deployment
+    - /devops/shelf/{{ service }}
+    - /devops/services/{{ service }}
+
+- name: Unpack archive
+  unarchive:
+    src: /tmp/trn-server/trn.tar
+    dest: /devops/services/{{ service }}
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    list_files: true
+    mode: 0755
+
+- name: Configure
+  template:
+    src: trn-server.service.j2
+    dest: /etc/init.d/{{ service }}
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable trn and daemon reload
+  systemd:
+    name: trn
+    enabled: yes
+    daemon_reload: yes

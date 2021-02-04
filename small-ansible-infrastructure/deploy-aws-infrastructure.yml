@@ -8,8 +8,8 @@
     var_name: "{{ lookup('env','var_name') }}"
     db_username: "{{ lookup('env','var_db_username') }}"
     db_password: "{{ lookup('env','var_db_password') }}"
-    i_type: "{{ lookup('env','var_octopus_instance_size') }}"
-    db_type: "{{ lookup('env','var_octopus_rds_size') }}"
+    i_type: "{{ lookup('env','var_devops-service_instance_size') }}"
+    db_type: "{{ lookup('env','var_devops-service_rds_size') }}"
   tasks:
     # VPC #
     - name: Create VPC
@@ -250,9 +250,9 @@
         var: rds_subnet_group
 
     ##########################################
-    # Create RDS instance for octopus server #
+    # Create RDS instance for devops-service server #
     ##########################################
-    - name: Create RDS octopus instance
+    - name: Create RDS devops-service instance
       rds:
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
@@ -260,7 +260,7 @@
         command: create
         db_engine: postgres
         engine_version: "9.6.11"
-        db_name: "octopus_server_db"
+        db_name: "devops-service_server_db"
         instance_name: "{{ var_name }}-{{ dev_environment }}-all-db"
         instance_type: "{{ db_type }}"
         multi_zone: "false"
@@ -324,9 +324,9 @@
         key_material: "ssh-rsa SomeXXXKey"
 
     ###############################
-    # Create EC2 octopus instance #
+    # Create EC2 devops-service instance #
     ###############################
-    - name: Change octopus instance state by tag
+    - name: Change devops-service instance state by tag
       ec2:
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
@@ -353,11 +353,11 @@
           Name: "{{ var_name }}-{{ dev_environment }}-all"
           user:client: "{{ var_name }}"
           user:Environment: "{{ dev_environment }}"
-      register: octopus_var
+      register: devops-service_var
 
     - name: Debug {{ var_name }}-{{ dev_environment }}-all result
       debug:
-        var: octopus_var
+        var: devops-service_var
 
     # Gather EC2 All Instance Facts #
     - name: Gather EC2 Facts
@@ -367,11 +367,11 @@
         region: "{{ AWS_REGION }}"
         filters:
           "tag:Name": "{{ var_name }}-{{ dev_environment }}-all"
-      register: ec2_octopus_facts
+      register: ec2_devops-service_facts
 
     - name: Debug EC2 Facts
       debug:
-        var: ec2_octopus_facts
+        var: ec2_devops-service_facts
 
     - name: Wait for EC2 Instance to boot
       command: "sleep 80"
@@ -382,49 +382,49 @@
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
-        device_id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
+        device_id: "{{ ec2_devops-service_facts.instances[0].instance_id }}"
         release_on_disassociation: yes
         state: present
       tags:
-        - elastic_ip_octopus
+        - elastic_ip_devops-service
 
-    # Gather EIP Facts to run octopus_setup_all.yml #
+    # Gather EIP Facts to run devops-service_setup_all.yml #
     - name: Gather EIP Facts
       ec2_eip_info:
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
         filters:
-          instance-id: "{{ ec2_octopus_facts.instances[0].instance_id }}"
+          instance-id: "{{ ec2_devops-service_facts.instances[0].instance_id }}"
       tags:
-        - elastic_ip_octopus
-      register: eip_facts_octopus
+        - elastic_ip_devops-service
+      register: eip_facts_devops-service
 
     - name: Debug EIP Facts
       debug:
-        var: eip_facts_octopus
+        var: eip_facts_devops-service
 
     - name: Set the ip_addr_all Fact
       set_fact:
-        ip_addr_all: "{{ eip_facts_octopus.addresses[0].public_ip }}"
+        ip_addr_all: "{{ eip_facts_devops-service.addresses[0].public_ip }}"
 
     - name: Debug ip address of the server
       debug:
         var: ip_addr_all
 
-    # Install Octopus Services #
-    - name: Install octopus services on EC2 octopus instance
-      command: "ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -u ec2-user -i {{ ip_addr_all }}, --private-key ~/.ssh/devops.pem octopus_setup_all.yml"
-      register: octopus_setup
+    # Install Devops Services #
+    - name: Install devops-service services on EC2 devops-service instance
+      command: "ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -u ec2-user -i {{ ip_addr_all }}, --private-key ~/.ssh/devops.pem devops-service_setup_all.yml"
+      register: devops-service_setup
 
     - name: Debug {{ var_name }}-{{ dev_environment }}-all instance setup
       debug:
-        var: octopus_setup
+        var: devops-service_setup
 
     ##################################
-    # Create EC2 transcoder instance #
+    # Create EC2 trn instance #
     ##################################
-    - name: Change transcoder instance stage by tag
+    - name: Change trn instance stage by tag
       ec2:
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
@@ -443,19 +443,19 @@
             volume_type: gp2
             volume_size: 20
         instance_tags:
-          Name: "{{ var_name }}-{{ dev_environment }}-transcoder"
+          Name: "{{ var_name }}-{{ dev_environment }}-trn"
           user:client: "{{ var_name }}"
           user:Environment: "{{ dev_environment }}"
         exact_count: 1
         count_tag:
-          Name: "{{ var_name }}-{{ dev_environment }}-transcoder"
+          Name: "{{ var_name }}-{{ dev_environment }}-trn"
           user:client: "{{ var_name }}"
           user:Environment: "{{ dev_environment }}"
-      register: transcoder_var
+      register: trn_var
 
-    - name: Debug {{ var_name }}-{{ dev_environment }}-transcoder result
+    - name: Debug {{ var_name }}-{{ dev_environment }}-trn result
       debug:
-        var: transcoder_var
+        var: trn_var
 
     # Gather EC2 Transcoder Instance Facts #
     - name: Gather EC2 Transcoder Facts
@@ -464,60 +464,60 @@
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
         filters:
-          "tag:Name": "{{ var_name }}-{{ dev_environment }}-transcoder"
-      register: ec2_transcoder_facts
+          "tag:Name": "{{ var_name }}-{{ dev_environment }}-trn"
+      register: ec2_trn_facts
 
     - name: Debug EC2 Facts
       debug:
-        var: ec2_transcoder_facts
+        var: ec2_trn_facts
 
     - name: Wait for EC2 Instance to boot
       command: "sleep 80"
 
-    # Assign EIP to EC2 {{ var_name }}-{{ dev_environment }}-transcoder instance #
-    - name: Assign EIP to {{ var_name }}-{{ dev_environment }}-transcoder instance
+    # Assign EIP to EC2 {{ var_name }}-{{ dev_environment }}-trn instance #
+    - name: Assign EIP to {{ var_name }}-{{ dev_environment }}-trn instance
       ec2_eip:
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
-        device_id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
+        device_id: "{{ ec2_trn_facts.instances[0].instance_id }}"
         release_on_disassociation: yes
         state: present
       tags:
-        - elastic_ip_transcoder
+        - elastic_ip_trn
 
-    # Gather EIP Facts to run octopus_setup_transcoder.yml #
+    # Gather EIP Facts to run devops-service_setup_trn.yml #
     - name: Gather EIP Facts
       ec2_eip_info:
         aws_access_key: "{{ AWS_ACCESS_KEY_ID }}"
         aws_secret_key: "{{ AWS_SECRET_ACCESS_KEY }}"
         region: "{{ AWS_REGION }}"
         filters:
-          instance-id: "{{ ec2_transcoder_facts.instances[0].instance_id }}"
+          instance-id: "{{ ec2_trn_facts.instances[0].instance_id }}"
       tags:
-        - elastic_ip_transcoder
-      register: eip_facts_transcoder
+        - elastic_ip_trn
+      register: eip_facts_trn
 
     - name: Debug EIP Facts
       debug:
-        var: eip_facts_transcoder
+        var: eip_facts_trn
 
-    - name: Set the ip_addr_transcoder Fact
+    - name: Set the ip_addr_trn Fact
       set_fact:
-        ip_addr_transcoder: "{{ eip_facts_transcoder.addresses[0].public_ip }}"
+        ip_addr_trn: "{{ eip_facts_trn.addresses[0].public_ip }}"
 
     - name: Debug ip address of the server
       debug:
-        var: ip_addr_transcoder
+        var: ip_addr_trn
 
-    # Install transcoder service #
-    - name: Install transcoder service on EC2 transcoder instance
-      command: "ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -u ec2-user -i {{ ip_addr_transcoder }}, --private-key ~/.ssh/devops.pem octopus_setup_transcoder.yml"
-      register: transcoder_setup
+    # Install trn service #
+    - name: Install trn service on EC2 trn instance
+      command: "ansible-playbook --ssh-common-args='-o StrictHostKeyChecking=no' -u ec2-user -i {{ ip_addr_trn }}, --private-key ~/.ssh/devops.pem devops-service_setup_trn.yml"
+      register: trn_setup
 
-    - name: Debug transcoder instance setup
+    - name: Debug trn instance setup
       debug:
-        var: transcoder_setup
+        var: trn_setup
 
     # Create missing databases on RDS instances #
     - name: Create multiple databases on RDS all-db db instance
@@ -532,12 +532,12 @@
         lc_ctype: "en_US.UTF-8"
         name: "{{ item }}"
       loop:
-        - octopus_analytics_db
-        - octopus_ecommerce_db
-        - octopus_chat_db
-        - octopus_comments_db
-        - octopus_log_db
-        - ums_db
+        - devops-service_lyrics_db
+        - devops-service_commerce_db
+        - devops-service_chat_db
+        - devops-service_ments_db
+        - devops-service_log_db
+        - user_db
 
     # Create required S3 buckets #
     - name: Create S3 buckets
@@ -554,11 +554,11 @@
           user:Environment: "{{ dev_environment }}"
         purge_tags: yes
       loop:
-        - "{{ var_name }}-{{ dev_environment }}-octopus-server"
-        - "{{ var_name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ var_name }}-{{ dev_environment }}-devops-service-server"
+        - "{{ var_name }}-{{ dev_environment }}-private-devops-service-server-s3"
         - "{{ var_name }}-{{ dev_environment }}-chat-server-user-attachments"
-        - "{{ var_name }}-{{ dev_environment }}-ecommerce-s3"
-        - "{{ var_name }}-{{ dev_environment }}-private-ecommerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-commerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-private-commerce-s3"
       register: s3_debug
 
     - name: debug S3 Bucket
@@ -610,12 +610,12 @@
               - ETag
             max_age_seconds: 3000
       loop:
-        - "{{ var_name }}-{{ dev_environment }}-octopus-server"
-        - "{{ var_name }}-{{ dev_environment }}-private-octopus-server-s3"
+        - "{{ var_name }}-{{ dev_environment }}-devops-service-server"
+        - "{{ var_name }}-{{ dev_environment }}-private-devops-service-server-s3"
         - "{{ var_name }}-{{ dev_environment }}-chat-server-user-attachments"
         - "{{ var_name }}-{{ dev_environment }}-chat-server-canned-attachments"
-        - "{{ var_name }}-{{ dev_environment }}-ecommerce-s3"
-        - "{{ var_name }}-{{ dev_environment }}-private-ecommerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-commerce-s3"
+        - "{{ var_name }}-{{ dev_environment }}-private-commerce-s3"
       register: s3_cors
     - name: debug S3 CORS Rules
       debug:

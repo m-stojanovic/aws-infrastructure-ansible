@@ -1,0 +1,106 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          commerce server
+# Required-Start:    $all
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: commerce server daemon
+# Description:       Init script for the commerce server daemon
+### END INIT INFO
+
+# Variables
+ZERO=0
+ECOMMERCE=/devops/services/{{ service }}/eCommerce
+ECOMMERCE_DIR=/devops/services/{{ service }}
+
+# Start the commerce server
+start() {
+ulimit -n 32768
+cd $ECOMMERCE_DIR
+echo "Starting commerce server..."
+pgrep -f $ECOMMERCE > /dev/null
+    VERIFIER=$?
+    if [ $ZERO = $VERIFIER ]
+    then
+        echo "The service is already running"
+    else
+        $ECOMMERCE >> $ECOMMERCE_DIR/logfile 2>&1 &
+        sleep 5
+
+        #Verify if the service is running
+        pgrep -f $ECOMMERCE > /dev/null
+        VERIFIER=$?
+        if [ $ZERO = $VERIFIER ]
+        then
+            echo "Service was successfully started"
+        else
+            echo "Failed to start service"
+        fi
+    fi
+echo
+}
+
+# Stop the commerce server
+stop() {
+cd $ECOMMERCE_DIR
+echo "Stopping commerce server..."
+    #Verify if the service is running
+    pgrep -f $ECOMMERCE > /dev/null
+    VERIFIER=$?
+    if [ $ZERO = $VERIFIER ]
+    then
+        kill $(pgrep -f $ECOMMERCE)
+        sleep 5
+
+        #Verify if the service is running
+        pgrep -f $ECOMMERCE  > /dev/null
+        VERIFIER=$?
+        if [ $ZERO = $VERIFIER ]
+        then
+            echo "Failed to stop service"
+        else
+            echo "Service was successfully stopped"
+        fi
+    else
+        echo "The service is already stopped"
+    fi
+echo
+}
+
+# Verify the status of commerce server
+status() {
+    echo "Checking status of commerce server..."
+    #Verify if the service is running
+    pgrep -f $ECOMMERCE > /dev/null
+    VERIFIER=$?
+    if [ $ZERO = $VERIFIER ]
+    then
+        echo "Service is running"
+    else
+        echo "Service is stopped"
+    fi
+    echo
+}
+
+# Main logic
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart|reload)
+        stop
+        start
+        ;;
+    *)
+    echo $"Usage: $0 {start|stop|status|restart|reload}"
+    exit 1
+esac
+
+exit 0

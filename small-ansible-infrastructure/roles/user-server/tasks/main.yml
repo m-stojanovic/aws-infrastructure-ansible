@@ -1,0 +1,36 @@
+--- # Prepare directories
+
+- name: Create directory structure
+  file:
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /devops/backup/deployment
+    - /devops/shelf/{{ service }}
+    - /devops/services/{{ service }}
+
+- name: Unpack archive
+  unarchive:
+    src: /tmp/user-server/user.tar
+    dest: /devops/services/{{ service }}
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    list_files: true
+    mode: 0755
+
+- name: Configure
+  template:
+    src: user.service.j2
+    dest: /etc/init.d/{{ service }}
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable user and daemon reload
+  systemd:
+    name: user
+    enabled: yes
+    daemon_reload: yes

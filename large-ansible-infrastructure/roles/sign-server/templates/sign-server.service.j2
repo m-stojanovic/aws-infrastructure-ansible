@@ -1,0 +1,106 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          sign-server
+# Required-Start:    $all
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: sign-server server daemon
+# Description:       Init script for the sign-server daemon
+### END INIT INFO
+
+# Variables
+ZERO=0
+SS=/devops/services/{{ service }}/sign-server
+SS_DIR=/devops/services/{{ service }}
+
+# Start the sign-server
+start() {
+ulimit -n 32768
+cd $SS_DIR
+echo "Starting sign-server..."
+pgrep -f $SS > /dev/null
+    VERIFIER=$?
+    if [ $ZERO = $VERIFIER ]
+    then
+        echo "The service is already running"
+    else
+        $SS >> $SS_DIR/logfile 2>&1 &
+        sleep 5
+
+        #Verify if the service is running
+        pgrep -f $SS > /dev/null
+        VERIFIER=$?
+        if [ $ZERO = $VERIFIER ]
+        then
+            echo "Service was successfully started"
+        else
+            echo "Failed to start service"
+        fi
+    fi
+echo
+}
+
+# Stop the sign-server
+stop() {
+cd $SS_DIR
+echo "Stopping sign-server..."
+    #Verify if the service is running
+    pgrep -f $SS > /dev/null
+    VERIFIER=$?
+    if [ $ZERO = $VERIFIER ]
+    then
+        kill $(pgrep -f $SS)
+        sleep 5
+
+        #Verify if the service is running
+        pgrep -f $SS  > /dev/null
+        VERIFIER=$?
+        if [ $ZERO = $VERIFIER ]
+        then
+            echo "Failed to stop service"
+        else
+            echo "Signaling server service was successfully stopped"
+        fi
+    else
+        echo "The service is already stopped"
+    fi
+echo
+}
+
+# Verify the status of sign-server
+status() {
+    echo "Checking status of sign-server..."
+    #Verify if the service is running
+    pgrep -f $SS > /dev/null
+    VERIFIER=$?
+    if [ $ZERO = $VERIFIER ]
+    then
+        echo "Signaling server service is running"
+    else
+        echo "Signaling server service is stopped"
+    fi
+    echo
+}
+
+# Main logic
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart|reload)
+        stop
+        start
+        ;;
+    *)
+    echo $"Usage: $0 {start|stop|status|restart|reload}"
+    exit 1
+esac
+
+exit 0

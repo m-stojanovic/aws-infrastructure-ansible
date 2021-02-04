@@ -8,8 +8,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: octopuschat
-      RABBITMQ_DEFAULT_PASS: octopus123ChAtbREStrikalaMiBaka
+      RABBITMQ_DEFAULT_USER: devops-servicechat
+      RABBITMQ_DEFAULT_PASS: devops-service123ChAtbREStrikalaMiBaka
     volumes:
       - /devops/docker-compose/rabbitmq/data-rabbitmq:/var/lib/rabbitmq
     restart: unless-stopped

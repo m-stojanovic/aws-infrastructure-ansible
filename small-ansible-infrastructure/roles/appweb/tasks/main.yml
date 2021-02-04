@@ -1,0 +1,12 @@
+---
+- name: Create directory structure
+  file:
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /devops/appweb/{{ var_name }}/mobile
+    - /devops/appweb/{{ var_name }}/commerce
+    - /devops/appweb/{{ var_name }}/.well-known

@@ -1,0 +1,15 @@
+---
+- name: Setup Web server for Devops Single Server environment
+  hosts: all
+  vars:
+    dev_environment: "{{ lookup('env','var_dev_environment') }}"
+    var_name: "{{ lookup('env','var_name') }}"
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: ec2-user
+  gather_facts: yes
+  roles:
+    - common
+    - nginx
+    - appweb

@@ -1,0 +1,38 @@
+---
+- name: Set hostname
+  hostname:
+    name: "{{ var_name }}-{{ dev_environment }}-all"
+
+- name: Create directory structure
+  file:
+    path: "{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: 0755
+    state: directory
+  with_items:
+    - /devops/shelf/{{ service }}
+    - /devops/services/{{ service }}
+
+- name: Unpack archive
+  unarchive:
+    src: /tmp/devops-service-server/devops-service-server.tar
+    dest: /devops/services/{{ service }}
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    list_files: true
+    mode: 0755
+
+- name: Copy devops-serviceserver.service to init.d
+  template:
+    src: devops-serviceserver.service.j2
+    dest: /etc/init.d/{{ service }}
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable devops-service-server and daemon reload
+  systemd:
+    name: devops-service-server
+    enabled: yes
+    daemon_reload: yes
