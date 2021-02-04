@@ -11,5 +11,5 @@ services:
       RABBITMQ_DEFAULT_USER: octopuschat
       RABBITMQ_DEFAULT_PASS: octopus123ChAtbREStrikalaMiBaka
     volumes:
-      - /carnegie/docker-compose/rabbitmq/data-rabbitmq:/var/lib/rabbitmq
+      - /devops/docker-compose/rabbitmq/data-rabbitmq:/var/lib/rabbitmq
     restart: unless-stopped

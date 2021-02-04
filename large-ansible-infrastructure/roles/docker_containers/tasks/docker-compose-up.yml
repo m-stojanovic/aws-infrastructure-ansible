@@ -2,7 +2,7 @@
 - name: Start the containers
   shell: docker-compose up -d
   args:
-    chdir: /carnegie/docker-compose/{{ item }}
+    chdir: /devops/docker-compose/{{ item }}
   with_items:
     - redis
     - rabbitmq

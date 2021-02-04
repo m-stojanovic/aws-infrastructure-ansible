@@ -8,14 +8,14 @@
     mode: 0755
     state: directory
   with_items:
-    - /carnegie/backup/deployment
-    - /carnegie/shelf/{{ service }}
-    - /carnegie/services/{{ service }}
+    - /devops/backup/deployment
+    - /devops/shelf/{{ service }}
+    - /devops/services/{{ service }}
 
 - name: Unpack archive
   unarchive:
     src: /tmp/ums-server/ums.tar
-    dest: /carnegie/services/{{ service }}
+    dest: /devops/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"
     list_files: true

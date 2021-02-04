@@ -10,7 +10,7 @@ services:
     environment:
       REDIS_REPLICATION_MODE: master
     volumes:
-      - /carnegie/docker-compose/redis/data-redis:/data
+      - /devops/docker-compose/redis/data-redis:/data
     networks:
       - "redis-net-{{ var_name }}"
     restart: unless-stopped

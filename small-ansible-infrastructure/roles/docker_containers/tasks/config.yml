@@ -6,7 +6,7 @@
 - name: Ensure directory structure exists on remote host
   file:
     state: directory
-    dest: "/carnegie/docker-compose/{{ item }}"
+    dest: "/devops/docker-compose/{{ item }}"
     group: "ec2-user"
     owner: "ec2-user"
   with_items:
@@ -16,7 +16,7 @@
 - name: Ensure files are populated from templates
   template:
     src: "{{ item.src }}"
-    dest: "/carnegie/docker-compose/redis/{{ item.path }}"
+    dest: "/devops/docker-compose/redis/{{ item.path }}"
     group: "ec2-user"
     owner: "ec2-user"
   with_filetree: "templates/redis"
@@ -24,7 +24,7 @@
 - name: Ensure files are populated from templates
   template:
     src: "{{ item.src }}"
-    dest: "/carnegie/docker-compose/rabbitmq/{{ item.path }}"
+    dest: "/devops/docker-compose/rabbitmq/{{ item.path }}"
     group: "ec2-user"
     owner: "ec2-user"
   with_filetree: "templates/rabbitmq"

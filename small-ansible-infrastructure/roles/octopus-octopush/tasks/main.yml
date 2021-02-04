@@ -7,13 +7,13 @@
     mode: 0755
     state: directory
   with_items:
-    - /carnegie/shelf/{{ service }}
-    - /carnegie/services/{{ service }}
+    - /devops/shelf/{{ service }}
+    - /devops/services/{{ service }}
 
 - name: Unpack archive
   unarchive:
     src: /tmp/octopus-octopush/octopus-octopush.tar
-    dest: /carnegie/services/{{ service }}
+    dest: /devops/services/{{ service }}
     owner: "{{ user }}"
     group: "{{ user }}"
     list_files: true

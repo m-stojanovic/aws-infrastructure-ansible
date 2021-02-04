@@ -7,6 +7,6 @@
     mode: 0755
     state: directory
   with_items:
-    - /carnegie/webapp/{{ var_name }}/mobile
-    - /carnegie/webapp/{{ var_name }}/ecommerce
-    - /carnegie/webapp/{{ var_name }}/.well-known
+    - /devops/webapp/{{ var_name }}/mobile
+    - /devops/webapp/{{ var_name }}/ecommerce
+    - /devops/webapp/{{ var_name }}/.well-known

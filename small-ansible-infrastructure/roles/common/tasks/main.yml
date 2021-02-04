@@ -66,5 +66,5 @@
     mode: 0755
     state: directory
   with_items:
-    - /carnegie/shelf
-    - /carnegie/backup/deployment
+    - /devops/shelf
+    - /devops/backup/deployment
